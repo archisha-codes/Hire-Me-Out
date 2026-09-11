@@ -1,0 +1,383 @@
+// Prisma Schema for Hire Me Out Platform (SQLite / PostgreSQL Compatible)
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  name            String
+  role            String           @default("STUDENT") // STUDENT, COMPANY, EMPLOYEE, ADMIN
+  avatar          String?
+  phone           String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  studentProfile  StudentProfile?
+  companyProfile  CompanyProfile?
+  employeeProfile EmployeeProfile?
+  comments        Comment[]
+  likes           Like[]
+  transactions    Transaction[]
+  notifications   Notification[]
+}
+
+model StudentProfile {
+  id                  String             @id @default(uuid())
+  userId              String             @unique
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  headline            String?
+  college             String?
+  degree              String?
+  branch              String?
+  gradYear            Int?
+  cgpa                Float?
+  location            String?
+  targetDomain        String?
+  targetRoles         String?            // JSON array string
+  experienceLevel     String             @default("Fresher")
+  bio                 String?
+  
+  resumeUrl           String?
+  resumeScore         Int                @default(0)
+  missingSkills       String?            // JSON array string
+  
+  github              String?
+  linkedin            String?
+  portfolio           String?
+  
+  talentScore         Int                @default(0)
+  talentTier          String             @default("Tier B")
+  percentile          Float              @default(0)
+  
+  techScore           Int                @default(0)
+  problemSolvingScore Int                @default(0)
+  commScore           Int                @default(0)
+  projectsScore       Int                @default(0)
+  interviewScore      Int                @default(0)
+  
+  humanVerified       Boolean            @default(false)
+  privacyLevel        String             @default("PUBLIC") // PUBLIC, VERIFIED_EMPLOYERS, REFERRAL_ONLY, PRIVATE
+  onboardingComplete  Boolean            @default(false)
+
+  educations          Education[]
+  experiences         Experience[]
+  skills              Skill[]
+  projects            Project[]
+  certifications      Certification[]
+  achievements        Achievement[]
+  assessmentAttempts  AssessmentAttempt[]
+  interviewSessions   InterviewSession[]
+  humanInterviews     HumanInterviewRequest[]
+  referralRequests    ReferralRequest[]
+  posts               Post[]
+}
+
+model Education {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  institution      String
+  degree           String
+  fieldOfStudy     String
+  startYear        Int
+  endYear          Int
+  grade            String?
+}
+
+model Experience {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  title            String
+  company          String
+  location         String?
+  startDate        String
+  endDate          String?
+  current          Boolean        @default(false)
+  description      String?
+}
+
+model Skill {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  name             String
+  category         String?
+  level            String?
+}
+
+model Project {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  title            String
+  description      String
+  techStack        String?        // JSON array string
+  githubUrl        String?
+  liveUrl          String?
+}
+
+model Certification {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  title            String
+  issuer           String
+  issueDate        String
+  credentialUrl    String?
+}
+
+model Achievement {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  title            String
+  date             String
+  description      String?
+}
+
+model CompanyProfile {
+  id               String            @id @default(uuid())
+  userId           String            @unique
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName      String
+  department       String?
+  designation      String?
+  website          String?
+  linkedin         String?
+  companySize      String?
+  isVerified       Boolean           @default(true)
+  logo             String?
+
+  jobs             Job[]
+  referralRequests ReferralRequest[]
+}
+
+model EmployeeProfile {
+  id                  String            @id @default(uuid())
+  userId              String            @unique
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  companyName         String
+  designation         String
+  workEmail           String
+  isVerified          Boolean           @default(true)
+  totalReferrals      Int               @default(0)
+  successfulReferrals Int               @default(0)
+  earnings            Float             @default(0)
+
+  referralRequests    ReferralRequest[]
+}
+
+model AssessmentTemplate {
+  id                 String              @id @default(uuid())
+  domain             String
+  role               String
+  experienceLevel    String              @default("Fresher")
+  title              String
+  description        String
+  timeLimitMinutes   Int                 @default(20)
+
+  questions          Question[]
+  attempts           AssessmentAttempt[]
+}
+
+model Question {
+  id                   String              @id @default(uuid())
+  assessmentTemplateId String?
+  assessmentTemplate   AssessmentTemplate? @relation(fields: [assessmentTemplateId], references: [id], onDelete: Cascade)
+  type                 String              @default("MCQ") // MCQ, CODING, DEBUGGING, SCENARIO, WRITTEN
+  text                 String
+  codeSnippet          String?
+  optionsJson          String?             // JSON array string
+  correctAnswer        String
+  explanation          String?
+  difficulty           String              @default("Medium")
+  domain               String
+  role                 String
+  skillCategory        String
+
+  answers              AssessmentAnswer[]
+}
+
+model AssessmentAttempt {
+  id                   String             @id @default(uuid())
+  studentProfileId     String
+  studentProfile       StudentProfile     @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  assessmentTemplateId String?
+  assessmentTemplate   AssessmentTemplate? @relation(fields: [assessmentTemplateId], references: [id], onDelete: SetNull)
+  domain               String?            @default("Software Development")
+  role                 String?            @default("Full Stack Developer")
+  score                Int                @default(0)
+  maxScore             Int                @default(100)
+  timeTakenSeconds     Int                @default(0)
+  timeLeftSeconds      Int?               @default(1200)
+  correctAnswers       Int                @default(0)
+  totalQuestions       Int                @default(5)
+  status               String             @default("IN_PROGRESS") // IN_PROGRESS, SUBMITTED, COMPLETED
+  answersJson          String?            // JSON string of user answers array
+  feedbackJson         String?            // JSON summary of strengths/weaknesses
+  createdAt            DateTime           @default(now())
+
+  answers              AssessmentAnswer[]
+}
+
+model AssessmentAnswer {
+  id               String            @id @default(uuid())
+  attemptId        String
+  attempt          AssessmentAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         Question          @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  userAnswer       String
+  isCorrect        Boolean
+  timeTakenSeconds Int
+  scoreEarned      Int
+}
+
+model InterviewSession {
+  id               String          @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  type             String          @default("AI") // AI, HUMAN
+  role             String
+  domain           String
+  status           String          @default("COMPLETED") // SCHEDULED, IN_PROGRESS, COMPLETED, CANCELLED
+  overallScore     Int             @default(0)
+  commScore        Int             @default(0)
+  techDepthScore   Int             @default(0)
+  confidenceScore  Int             @default(0)
+  accuracyScore    Int             @default(0)
+  behavioralScore  Int             @default(0)
+  answersJson      String?         // JSON string of saved Q&A
+  strengthsJson    String?         // JSON array string
+  weaknessesJson   String?         // JSON array string
+  recommendation   String          @default("RECOMMENDED")
+  transcriptJson   String?         // JSON conversation transcript
+  createdAt        DateTime        @default(now())
+}
+
+model HumanInterviewRequest {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  interviewerName  String?
+  scheduledAt      String
+  status           String         @default("PENDING")
+  notes            String?
+  rating           Int?
+  createdAt        DateTime       @default(now())
+}
+
+model Job {
+  id                  String            @id @default(uuid())
+  companyProfileId    String
+  companyProfile      CompanyProfile    @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  title               String
+  domain              String
+  role                String
+  experienceLevel     String
+  location            String
+  type                String            @default("FULL_TIME")
+  description         String
+  requiredSkillsJson  String            // JSON array string
+  preferredSkillsJson String?           // JSON array string
+  salaryRange         String
+  referralBonus       Float             @default(5000)
+  isActive            Boolean           @default(true)
+  createdAt           DateTime          @default(now())
+
+  referralRequests    ReferralRequest[]
+}
+
+model ReferralRequest {
+  id                String            @id @default(uuid())
+  studentProfileId  String
+  studentProfile    StudentProfile    @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  jobId             String
+  job               Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  companyProfileId  String
+  companyProfile    CompanyProfile    @relation(fields: [companyProfileId], references: [id], onDelete: Cascade)
+  employeeProfileId String?
+  employeeProfile   EmployeeProfile?  @relation(fields: [employeeProfileId], references: [id], onDelete: SetNull)
+  status            String            @default("SHORTLISTED")
+  statusHistoryJson String?           // JSON array string of timeline events
+  notes             String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+model Post {
+  id               String         @id @default(uuid())
+  studentProfileId String
+  studentProfile   StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  content          String
+  type             String         @default("GENERAL") // PROJECT, CERTIFICATION, ASSESSMENT, MILESTONE, GENERAL
+  mediaUrl         String?
+  privacy          String         @default("PUBLIC")
+  likesCount       Int            @default(0)
+  commentsCount    Int            @default(0)
+  createdAt        DateTime       @default(now())
+
+  comments         Comment[]
+  likes            Like[]
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Like {
+  id     String @id @default(uuid())
+  postId String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Transaction {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type              String
+  amount            Float
+  currency          String   @default("INR")
+  status            String   @default("COMPLETED")
+  razorpayPaymentId String?
+  createdAt         DateTime @default(now())
+}
+
+model CommissionRule {
+  id                       String @id @default(uuid())
+  name                     String @default("Default Pricing")
+  studentFee               Float  @default(499)
+  companySubMonthly        Float  @default(9999)
+  employeeRewardAmount     Float  @default(3000)
+  platformCommissionPercent Float  @default(20)
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, SHORTLIST, INTERVIEW_REQUEST, REFERRAL, SCORE, PAYMENT
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+}
+
